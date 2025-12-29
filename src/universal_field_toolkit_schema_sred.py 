@@ -1,0 +1,24 @@
+def main():
+    with open("schema.md", "w") as f:
+        f.write("# Universal Field Toolkit Schema\n\n")
+        f.write("## Required Columns\n")
+        f.write("- Observation_ID\n")
+        f.write("- Photo_Filename\n")
+        f.write("- Observation_Type\n")
+        f.write("- Timestamp\n")
+        f.write("- Date\n")
+        f.write("- Time_Of_Day\n")
+        f.write("- GPS\n")
+        f.write("- Human_Influence_Score\n")
+        f.write("- Human_Influence_Note\n")
+        f.write("- Notes\n")
+        f.write("- brightness\n")
+        f.write("- texture_class\n")
+        f.write("- mean_r, mean_g, mean_b\n")
+        f.write("- edge_density\n")
+        f.write("- shadow_intensity\n")
+        f.write("- Predicted_Melt_Rate\n")
+        f.write("- Explanation\n")
+
+if __name__ == "__main__":
+    main()
