@@ -6,12 +6,13 @@ import os
 WORKING_DIR = os.environ.get("WORKING_DIR", "/data/testing-input-output")
 SCHEMA_PATH = os.path.join(WORKING_DIR, "schema.md")
 
-os.makedirs(WORKING_DIR, exist_ok=True)
-
 # ---------------------------------------------------------
 # Generate rich schema.md (Book 7 content)
 # ---------------------------------------------------------
 def write_schema():
+    # Ensure directory exists before writing
+    os.makedirs(WORKING_DIR, exist_ok=True)
+
     with open(SCHEMA_PATH, "w") as f:
         f.write("# Universal Field Toolkit CSV Schema & Data Standards\n\n")
         f.write("This document defines the complete data contract for the Universal Field Toolkit.\n")
@@ -99,7 +100,9 @@ def write_schema():
 # Main
 # ---------------------------------------------------------
 def main():
-    # Schema stage requires no CSV input
+    # Ensure directory exists before writing
+    os.makedirs(WORKING_DIR, exist_ok=True)
+
     write_schema()
     print("🎉 Schema stage complete. Final outputs written to /data/testing-input-output")
     print("🏁 This is the final resting place of the pipeline.")
