@@ -1,5 +1,4 @@
 import os
-import shutil
 from pathlib import Path
 import pytest
 
@@ -10,152 +9,145 @@ import universal_field_toolkit_schema_sred as schema
 # write_schema
 # ---------------------------------------------------------
 
-def test_write_schema_creates_correct_file(tmp_path, monkeypatch, capsys):
-    # Patch SCHEMA_PATH
+def test_write_schema_creates_file_and_basic_sections(tmp_path, monkeypatch, capsys):
     schema_path = tmp_path / "schema.md"
     monkeypatch.setattr(schema, "SCHEMA_PATH", str(schema_path))
 
     schema.write_schema()
 
     assert schema_path.is_file()
-
     content = schema_path.read_text()
 
-    # Basic structure
-    assert "# Universal Field Toolkit Schema" in content
-    assert "## Required Columns" in content
+    # Core headings
+    assert "# Universal Field Toolkit CSV Schema & Data Standards" in content
+    assert "## Column Reference" in content
+    assert "## Human Influence Rubric" in content
+    assert "## Example Rows" in content
+    assert "## Best Practices" in content
+    assert "## Optional Future: CSV Validation Mode" in content
 
-    # Required fields
-    required_fields = [
+    # Confirm generation message
+    out = capsys.readouterr().out
+    assert "schema.md generated" in out
+
+
+def test_write_schema_includes_required_columns(tmp_path, monkeypatch):
+    schema_path = tmp_path / "schema.md"
+    monkeypatch.setattr(schema, "SCHEMA_PATH", str(schema_path))
+
+    schema.write_schema()
+    content = schema_path.read_text()
+
+    required_columns = [
         "Observation_ID",
         "Photo_Filename",
         "Observation_Type",
         "Timestamp",
         "Date",
         "Time_Of_Day",
+        "Part_Of_Day",
         "GPS",
-        "Human_Influence_Score",
-        "Human_Influence_Note",
-        "Notes",
-        "brightness",
+        "Brightness",
         "Mean_R",
         "Mean_G",
         "Mean_B",
+        "Normalized_Blue",
+        "Color_Temp_Proxy",
+        "Light_Source_Flag",
         "Texture",
+        "Relative_Texture_Variance",
         "Texture_Class",
         "Edge_Density",
         "Shadow_Intensity",
+        "Shadow_Direction_Variance",
+        "Shadow_Variance_Flag",
+        "Relative_Brightness_Variance",
+        "Human_Influence_Score",
+        "Human_Influence_Note",
+        "Predicted_Change_Flag",
         "Predicted_Melt_Rate",
         "Explanation",
         "Global_Correlation_Count",
     ]
 
-    for field in required_fields:
-        assert f"- {field}" in content
+    for col in required_columns:
+        assert col in content
 
-    captured = capsys.readouterr()
-    assert "schema.md generated" in captured.out
+
+def test_write_schema_includes_multi_domain_examples(tmp_path, monkeypatch):
+    schema_path = tmp_path / "schema.md"
+    monkeypatch.setattr(schema, "SCHEMA_PATH", str(schema_path))
+
+    schema.write_schema()
+    content = schema_path.read_text()
+
+    # Snow example
+    assert "photo1_ingested.jpg" in content
+    assert "grainy" in content
+
+    # Aurora example
+    assert "aurora1_ingested.jpg" in content
+
+    # Air quality example
+    assert "sky1_ingested.jpg" in content
+
+
+def test_write_schema_is_idempotent(tmp_path, monkeypatch):
+    """Running write_schema twice should overwrite cleanly without errors."""
+    schema_path = tmp_path / "schema.md"
+    monkeypatch.setattr(schema, "SCHEMA_PATH", str(schema_path))
+
+    schema.write_schema()
+    first = schema_path.read_text()
+
+    schema.write_schema()
+    second = schema_path.read_text()
+
+    assert first == second  # deterministic output
 
 
 # ---------------------------------------------------------
-# generate_final_images
+# main()
 # ---------------------------------------------------------
 
-def test_generate_final_images_copies_predicted_files(tmp_path, monkeypatch, capsys):
+def test_main_creates_schema_without_csv(tmp_path, monkeypatch, capsys):
+    """Schema stage should NOT require CSV anymore."""
     monkeypatch.setattr(schema, "WORKING_DIR", str(tmp_path))
-
-    # Create predicted images
-    pred1 = tmp_path / "img1_predicted.jpg"
-    pred2 = tmp_path / "img2_predicted.jpg"
-    pred1.write_bytes(b"jpeg1")
-    pred2.write_bytes(b"jpeg2")
-
-    # Create unrelated files
-    (tmp_path / "notes.txt").write_text("ignore me")
-    (tmp_path / "img3_analyzed.jpg").write_bytes(b"nope")
-
-    schema.generate_final_images()
-
-    # Check final images
-    final1 = tmp_path / "img1_final.jpg"
-    final2 = tmp_path / "img2_final.jpg"
-
-    assert final1.is_file()
-    assert final2.is_file()
-
-    assert final1.read_bytes() == b"jpeg1"
-    assert final2.read_bytes() == b"jpeg2"
-
-    captured = capsys.readouterr()
-    assert "Created" in captured.out
-
-
-def test_generate_final_images_no_predicted_files(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(schema, "WORKING_DIR", str(tmp_path))
-
-    # Only non-predicted files
-    (tmp_path / "random.jpg").write_bytes(b"data")
-
-    schema.generate_final_images()
-
-    captured = capsys.readouterr()
-    # Should not print any "Created"
-    assert "Created" not in captured.out
-
-
-# ---------------------------------------------------------
-# main() — missing CSV
-# ---------------------------------------------------------
-
-def test_main_missing_csv(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(schema, "WORKING_DIR", str(tmp_path))
-    monkeypatch.setattr(schema, "CSV_PATH", str(tmp_path / "field_data.csv"))
     monkeypatch.setattr(schema, "SCHEMA_PATH", str(tmp_path / "schema.md"))
 
     schema.main()
 
-    captured = capsys.readouterr()
-    assert "field_data.csv not found" in captured.out
+    out = capsys.readouterr().out
+    assert "Schema stage complete" in out
+    assert "final resting place" in out
 
-    # No schema.md created
-    assert not (tmp_path / "schema.md").exists()
+    assert (tmp_path / "schema.md").is_file()
 
 
-# ---------------------------------------------------------
-# main() — happy path
-# ---------------------------------------------------------
-
-def test_main_happy_path(tmp_path, monkeypatch, capsys):
+def test_main_overwrites_existing_schema(tmp_path, monkeypatch):
     monkeypatch.setattr(schema, "WORKING_DIR", str(tmp_path))
-    csv_path = tmp_path / "field_data.csv"
     schema_path = tmp_path / "schema.md"
-
-    monkeypatch.setattr(schema, "CSV_PATH", str(csv_path))
     monkeypatch.setattr(schema, "SCHEMA_PATH", str(schema_path))
 
-    # Create CSV so main() proceeds
-    csv_path.write_text("dummy,data\n")
-
-    # Create predicted images
-    pred = tmp_path / "img_predicted.jpg"
-    pred.write_bytes(b"jpegdata")
+    # Pre-existing file
+    schema_path.write_text("OLD CONTENT")
 
     schema.main()
 
-    captured = capsys.readouterr()
+    new_content = schema_path.read_text()
+    assert "OLD CONTENT" not in new_content
+    assert "Universal Field Toolkit CSV Schema" in new_content
 
-    # Schema created
-    assert schema_path.is_file()
-    assert "schema.md generated" in captured.out
 
-    # Final image created
-    final = tmp_path / "img_final.jpg"
-    assert final.is_file()
-    assert final.read_bytes() == b"jpegdata"
+def test_main_creates_directory_if_missing(tmp_path, monkeypatch):
+    """WORKING_DIR may not exist; main() should still succeed."""
+    working_dir = tmp_path / "nested" / "deep"
+    monkeypatch.setattr(schema, "WORKING_DIR", str(working_dir))
+    monkeypatch.setattr(schema, "SCHEMA_PATH", str(working_dir / "schema.md"))
 
-    # Final messages
-    assert "Schema stage complete" in captured.out
-    assert "final resting place" in captured.out
+    schema.main()
+
+    assert (working_dir / "schema.md").is_file()
 
 
 
