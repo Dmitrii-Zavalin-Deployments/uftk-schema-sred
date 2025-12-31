@@ -3,8 +3,9 @@ import os
 # ---------------------------------------------------------
 # Unified working directory
 # ---------------------------------------------------------
-WORKING_DIR = "/data/testing-input-output"
+WORKING_DIR = os.environ.get("WORKING_DIR", "/data/testing-input-output")
 SCHEMA_PATH = os.path.join(WORKING_DIR, "schema.md")
+
 os.makedirs(WORKING_DIR, exist_ok=True)
 
 # ---------------------------------------------------------
